@@ -1,9 +1,21 @@
 document.addEventListener("DOMContentLoaded", () => {
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const cards = document.querySelectorAll(".feature-card");
 
-  // Scroll-reveal for feature cards (default visible if IntersectionObserver unavailable or reduced motion preferred)
-  if (!prefersReducedMotion && "IntersectionObserver" in window && cards.length > 0) {
+  const observeStaggeredGrid = (gridSelector, cardSelector) => {
+    const grid = document.querySelector(gridSelector);
+    const cards = document.querySelectorAll(cardSelector);
+
+    if (prefersReducedMotion || !("IntersectionObserver" in window) || !grid || cards.length === 0) {
+      return;
+    }
+
+    const revealCards = () => {
+      cards.forEach((card) => {
+        card.classList.remove("reveal-pending");
+        card.classList.add("reveal-visible");
+      });
+    };
+
     cards.forEach((card, index) => {
       card.style.setProperty("--reveal-delay", `${index * 80}ms`);
       card.classList.add("reveal-pending");
@@ -12,18 +24,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const observer = new IntersectionObserver(
       (entries, obs) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.remove("reveal-pending");
-            entry.target.classList.add("reveal-visible");
+          if (entry.isIntersecting || entry.boundingClientRect.top < window.innerHeight) {
+            revealCards();
             obs.unobserve(entry.target);
           }
         });
       },
-      { threshold: 0.15 }
+      { threshold: 0.08 }
     );
 
-    cards.forEach((card) => observer.observe(card));
-  }
+    observer.observe(grid);
+  };
+
+  observeStaggeredGrid(".arenas-grid", ".arena-card");
+  observeStaggeredGrid(".features-grid", ".feature-card");
 
   // Optional conversion tracking hooks (compatible with gtag / fbq when added)
   const ctaButtons = document.querySelectorAll("[data-cta]");
